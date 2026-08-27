@@ -31,32 +31,29 @@ Item {
         id: conservationView
         path: "/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VPC2004:00/conservation_mode"
         printErrors: false
-        // NOTE: watchChanges does NOT work on this Lenovo sysfs path
-        // (inotify isn't fired for writes to virtual battery files). Use
-        // the periodic Timer (below) to force reload() instead.
-        onInternalTextChanged: root.conservationRaw = text()
-        Component.onCompleted: root.conservationRaw = text()
+        onInternalTextChanged: root.conservationRaw = text().trim()
+        Component.onCompleted: root.conservationRaw = text().trim()
     }
     FileView {
         id: capacityView
         path: "/sys/class/power_supply/BAT0/capacity"
         printErrors: false
-        onInternalTextChanged: root.capacityRaw = text()
-        Component.onCompleted: root.capacityRaw = text()
+        onInternalTextChanged: root.capacityRaw = text().trim()
+        Component.onCompleted: root.capacityRaw = text().trim()
     }
     FileView {
         id: statusView
         path: "/sys/class/power_supply/BAT0/status"
         printErrors: false
-        onInternalTextChanged: root.statusRaw = text()
-        Component.onCompleted: root.statusRaw = text()
+        onInternalTextChanged: root.statusRaw = text().trim()
+        Component.onCompleted: root.statusRaw = text().trim()
     }
     FileView {
         id: cycleView
         path: "/sys/class/power_supply/BAT0/cycle_count"
         printErrors: false
-        onInternalTextChanged: root.cycleRaw = text()
-        Component.onCompleted: root.cycleRaw = text()
+        onInternalTextChanged: root.cycleRaw = text().trim()
+        Component.onCompleted: root.cycleRaw = text().trim()
     }
 
     // Periodic refresh: manually trigger reload of each FileView
@@ -76,22 +73,16 @@ Item {
 
     // --- Action: toggle charge mode via TLP ---
     function toggleChargeMode() {
-        var currentCons = conservationView.text();
+        // The FileView text() returns the raw content with a trailing newline.
+        // Strip it before comparing so "1" (Long_Life) is detected correctly.
+        var currentCons = conservationView.text().trim();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
         var target = (currentMode === "Standard") ? "poupar" : "cheia";
         var cmd = "bat-" + target + " 2>/dev/null || pkexec /usr/bin/tlp " +
                   ((target === "cheia") ? "fullcharge" : "start");
-        Logger.i("BatteryMode", "toggleChargeMode: current=", currentMode,
-                 "target=", target, "cmd=", cmd);
-        // execDetached (fire-and-forget) because pkexec needs to be detached
-        // from the QML scene — if we used Process, the polkit dialog would
-        // own the QProcess and the exited signal never fires when the user
-        // cancels the dialog.
+        Logger.i("BatteryMode", "toggleChargeMode: currentCons=[", currentCons,
+                 "] currentMode=", currentMode, "target=", target);
         Quickshell.execDetached(["fish", "-c", cmd]);
-        // Force a fast re-read of conservation_mode. The pkexec dialog
-        // takes ~3s (the user types their password), then tlp runs (a few
-        // hundred ms), then the firmware writes sysfs. Polling at 500ms
-        // for ~5s catches the eventual change without burning CPU.
         forceRefreshTimer.restart();
     }
 
