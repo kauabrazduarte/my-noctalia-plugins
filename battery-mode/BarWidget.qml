@@ -167,9 +167,13 @@ Item {
             }
 
             if (mouse.button === Qt.LeftButton) {
+                Logger.i("BatteryMode", "LeftButton path. clickToToggle=", root.clickToToggle,
+                         "hasMainInstance=", pluginApi?.mainInstance !== null);
                 if (root.clickToToggle && pluginApi?.mainInstance) {
+                    Logger.i("BatteryMode", "calling toggleChargeMode on mainInstance");
                     pluginApi.mainInstance.toggleChargeMode();
                 } else {
+                    Logger.i("BatteryMode", "calling openPanel instead");
                     root.openPanel();
                 }
                 root.clicked();
