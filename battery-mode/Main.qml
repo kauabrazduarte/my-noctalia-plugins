@@ -75,9 +75,6 @@ Item {
     }
 
     // --- Action: toggle charge mode via TLP ---
-    // We use a Process (not execDetached) so we can run a follow-up
-    // reload() the moment the command finishes. That gives the UI
-    // a near-instant update instead of waiting for the 2s timer.
     function toggleChargeMode() {
         var currentCons = conservationView.text();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
@@ -86,36 +83,38 @@ Item {
                   ((target === "cheia") ? "fullcharge" : "start");
         Logger.i("BatteryMode", "toggleChargeMode: current=", currentMode,
                  "target=", target, "cmd=", cmd);
-
-        var proc = Qt.createQmlObject('
-            import Quickshell.Io
-            Process {
-                stdout: StdioCollector {}
-                stderr: StdioCollector {}
-            }
-        ', root, "toggle_" + Date.now());
-        proc.command = ["fish", "-c", cmd];
-        proc.exited.connect(function (exitCode) {
-            Logger.i("BatteryMode", "toggle cmd exit=", exitCode,
-                     "stderr=", proc.stderr.text().trim().substring(0, 200));
-            proc.destroy();
-            // Force the FileViews to re-read sysfs right now. The
-            // conservation_mode file is what changes, and a couple of
-            // retries handle any race in the firmware's write.
-            refreshTimer.interval = 100;
-            refreshTimer.restart();
-            // After 1s, go back to the normal 2s polling cadence.
-            resetTimer.restart();
-        });
-        proc.running = true;
+        // execDetached (fire-and-forget) because pkexec needs to be detached
+        // from the QML scene — if we used Process, the polkit dialog would
+        // own the QProcess and the exited signal never fires when the user
+        // cancels the dialog.
+        Quickshell.execDetached(["fish", "-c", cmd]);
+        // Force a fast re-read of conservation_mode. The pkexec dialog
+        // takes ~3s (the user types their password), then tlp runs (a few
+        // hundred ms), then the firmware writes sysfs. Polling at 500ms
+        // for ~5s catches the eventual change without burning CPU.
+        forceRefreshTimer.restart();
     }
 
     Timer {
-        id: resetTimer
-        interval: 1000
-        repeat: false
+        id: forceRefreshTimer
+        interval: 500
+        repeat: true
+        running: false
         onTriggered: {
-            refreshTimer.interval = 2000;
+            // Each tick: count up. After ~10 ticks (5s), stop.
+            if (forceRefreshTimer.repeat && parent._ticks === undefined) {
+                parent._ticks = 0;
+            }
+            parent._ticks = (parent._ticks || 0) + 1;
+            conservationView.reload();
+            capacityView.reload();
+            statusView.reload();
+            cycleView.reload();
+            if ((parent._ticks || 0) >= 10) {
+                forceRefreshTimer.stop();
+                forceRefreshTimer.repeat = true;
+                parent._ticks = 0;
+            }
         }
     }
 }
