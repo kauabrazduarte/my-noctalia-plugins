@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
-
 Item {
     id: root
 
@@ -97,11 +96,20 @@ Item {
                 acOnline.path = ac;
                 var v = acOnline.text().trim();
                 if (v !== "1") {
-                    Quickshell.execDetached(["notify-send",
-                        "-a", "Battery Charge Mode",
-                        "-u", "critical",
-                        "Carregador não conectado",
-                        "Conecte o carregador antes de mudar para Standard (100%)."]);
+                    // Use noctalia's ToastService so the message appears
+                    // inside the shell (it doesn't depend on a freedesktop
+                    // notification daemon being installed).
+                    if (typeof ToastService !== "undefined" && ToastService.showError) {
+                        ToastService.showError(
+                            "Carregador não conectado",
+                            "Conecte o carregador antes de mudar para Standard (100%).");
+                    } else {
+                        Quickshell.execDetached(["notify-send",
+                            "-a", "Battery Charge Mode",
+                            "-u", "critical",
+                            "Carregador não conectado",
+                            "Conecte o carregador antes de mudar para Standard (100%)."]);
+                    }
                     return;
                 }
             } catch (e) {
