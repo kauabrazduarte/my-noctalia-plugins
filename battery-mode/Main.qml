@@ -8,66 +8,81 @@ Item {
     // Injected by the host
     property var pluginApi: null
 
-    // Read-only state (consumed by BarWidget / ControlCenterWidget / Panel)
-    readonly property string conservationPath: "/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VPC2004:00/conservation_mode"
-    readonly property string capacityPath: "/sys/class/power_supply/BAT0/capacity"
-    readonly property string statusPath: "/sys/class/power_supply/BAT0/status"
-    readonly property string chargeTypesPath: "/sys/class/power_supply/BAT0/charge_types"
-    readonly property string cyclePath: "/sys/class/power_supply/BAT0/cycle_count"
+    // Cached values, updated by each FileView's onLoaded/onInternalTextChanged.
+    // These are regular properties (not readonly) so they can be reassigned.
+    property string conservationRaw: ""
+    property string capacityRaw: ""
+    property string statusRaw: ""
+    property string cycleRaw: ""
 
-    property string mode: "Long_Life"          // "Long_Life" or "Standard"
-    property int capacity: 0
-    property string status: "Unknown"          // "Charging", "Discharging", "Not charging", "Full", "Unknown"
-    property bool charging: false
-    property int cycleCount: 0
+    // Computed state (read by BarWidget, ControlCenterWidget, Panel)
+    readonly property string mode: conservationRaw === "1" ? "Long_Life" : "Standard"
+    readonly property int capacity: parseInt(capacityRaw, 10) || 0
+    readonly property string status: statusRaw || "Unknown"
+    readonly property bool charging: status === "Charging" || status === "Full"
+    readonly property int cycleCount: parseInt(cycleRaw, 10) || 0
 
+    Component.onCompleted: {
+        Logger.i("BatteryMode", "Service initialized");
+    }
+
+    // --- One FileView per sysfs file ---
+    // `preload: true` makes text() return the current file content synchronously.
+    // The onInternalTextChanged signal fires when the file is reloaded; we re-read
+    // and cache the result in our plain `string` properties so other bindings work.
+    FileView {
+        id: conservationView
+        path: "/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VPC2004:00/conservation_mode"
+        printErrors: false
+        blockLoading: true
+        onInternalTextChanged: root.conservationRaw = text()
+        Component.onCompleted: root.conservationRaw = text()
+    }
+    FileView {
+        id: capacityView
+        path: "/sys/class/power_supply/BAT0/capacity"
+        printErrors: false
+        blockLoading: true
+        onInternalTextChanged: root.capacityRaw = text()
+        Component.onCompleted: root.capacityRaw = text()
+    }
+    FileView {
+        id: statusView
+        path: "/sys/class/power_supply/BAT0/status"
+        printErrors: false
+        blockLoading: true
+        onInternalTextChanged: root.statusRaw = text()
+        Component.onCompleted: root.statusRaw = text()
+    }
+    FileView {
+        id: cycleView
+        path: "/sys/class/power_supply/BAT0/cycle_count"
+        printErrors: false
+        blockLoading: true
+        onInternalTextChanged: root.cycleRaw = text()
+        Component.onCompleted: root.cycleRaw = text()
+    }
+
+    // Periodic refresh: manually trigger reload of each FileView
     Timer {
-        id: pollTimer
+        id: refreshTimer
         interval: 2000
         running: true
         repeat: true
-        triggeredOnStart: true
+        triggeredOnStart: false
         onTriggered: {
-            // 1) charge mode (the real source of truth is conservation_mode)
-            root.readFile(root.conservationPath, function(cons) {
-                root.mode = (cons === "1") ? "Long_Life" : "Standard";
-            });
-            // 2) capacity (0-100)
-            root.readFile(root.capacityPath, function(cap) {
-                var n = parseInt(cap, 10);
-                if (!isNaN(n)) root.capacity = n;
-            });
-            // 3) status
-            root.readFile(root.statusPath, function(st) {
-                root.status = st;
-                root.charging = (st === "Charging" || st === "Full");
-            });
-            // 4) cycle count
-            root.readFile(root.cyclePath, function(cyc) {
-                var n = parseInt(cyc, 10);
-                if (!isNaN(n)) root.cycleCount = n;
-            });
+            conservationView.reload();
+            capacityView.reload();
+            statusView.reload();
+            cycleView.reload();
         }
     }
 
-    // Async file read using Quickshell.Io.FileView
-    function readFile(path, callback) {
-        var view = Qt.createQmlObject('import Quickshell.Io; FileView { property var callback: null; path: ""; onLoaded: { callback(text); destroy(); } onLoadFailed: { callback(""); destroy(); } }', root, "read_" + Date.now());
-        view.callback = callback;
-        view.path = path;
-    }
-
-    // Action: toggle charge mode via TLP (uses pkexec for graphical auth in niri)
+    // --- Action: toggle charge mode via TLP ---
     function toggleChargeMode() {
         var target = (root.mode === "Standard") ? "poupar" : "cheia";
         var cmd = "bat-" + target + " 2>/dev/null || pkexec /usr/bin/tlp " +
                   ((target === "cheia") ? "fullcharge" : "start");
         Quickshell.execDetached(["fish", "-c", cmd]);
-        // Optimistic UI update: flip immediately, the next 2s tick will reconcile.
-        root.mode = (target === "cheia") ? "Standard" : "Long_Life";
-    }
-
-    Component.onCompleted: {
-        Logger.i("BatteryMode", "Service initialized");
     }
 }
