@@ -72,10 +72,16 @@ Item {
     }
 
     // --- Action: toggle charge mode via TLP ---
+    // Logic:
+    //   currentMode=Long_Life  -> user wants Standard  -> tlp fullcharge (rejected without AC)
+    //   currentMode=Standard   -> user wants Long_Life -> tlp start (always works)
+    // tlp start applies the configured STOP_CHARGE_THRESH_BAT0 (1 = Long_Life)
+    // from /etc/tlp.conf and sets conservation_mode accordingly. It does not
+    // require AC.
     function toggleChargeMode() {
         var currentCons = conservationView.text().trim();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
-        var tlpCmd = (currentMode === "Standard") ? "fullcharge" : "start";
+        var tlpCmd = (currentMode === "Long_Life") ? "fullcharge" : "start";
 
         // tlp fullcharge refuses if AC is not connected ("fullcharge is
         // possible on AC power only"). Check /sys/class/power_supply/ADP0/online
