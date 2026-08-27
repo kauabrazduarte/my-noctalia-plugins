@@ -1,0 +1,26 @@
+{
+  "id": "battery-mode",
+  "name": "Battery Charge Mode",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "Kauã Braz",
+  "license": "MIT",
+  "repository": "https://github.com/kauabrazduarte/my-noctalia-plugins",
+  "description": "Bar widget + control-center shortcut for toggling the Lenovo IdeaPad battery charge mode (Standard / Long_Life) via TLP. Clique para alternar entre Standard (100%) e Long_Life (60%).",
+  "tags": ["System", "Power", "Battery"],
+  "entryPoints": {
+    "main": "service.luau",
+    "barWidget": "BarWidget.luau",
+    "panel": "panel.luau",
+    "shortcut": "shortcut.luau"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "show_label": true,
+      "click_to_toggle": true
+    }
+  }
+}
