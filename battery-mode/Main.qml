@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import qs.Commons
 
 Item {
     id: root
@@ -21,10 +22,6 @@ Item {
     readonly property string status: statusRaw || "Unknown"
     readonly property bool charging: status === "Charging" || status === "Full"
     readonly property int cycleCount: parseInt(cycleRaw, 10) || 0
-
-    Component.onCompleted: {
-        Logger.i("BatteryMode", "Service initialized");
-    }
 
     // --- One FileView per sysfs file ---
     // `preload: true` makes text() return the current file content synchronously.
