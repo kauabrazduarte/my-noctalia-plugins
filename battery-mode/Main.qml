@@ -83,38 +83,46 @@ Item {
         var tlpCmd = (currentMode === "Long_Life") ? "fullcharge" : "start";
 
         // tlp fullcharge refuses if AC is not connected ("fullcharge is
-        // possible on AC power only"). Check /sys/class/power_supply/ADP0/online
-        // and bail out with a notification instead of triggering a
-        // pkexec + tlp round-trip that we know will be rejected.
+        // possible on AC power only"). Use Quickshell.execDetached to spawn
+        // a synchronous cat that we can read in-process; this avoids
+        // FileView's async-load race (text() returns "" before onLoaded
+        // fires, which would falsely show the AC-down warning).
         if (tlpCmd === "fullcharge") {
             var ac = "/sys/class/power_supply/ADP0/online";
-            try {
-                var acOnline = Qt.createQmlObject('
-                    import Quickshell.Io
-                    FileView { path: ""; onLoaded: destroy() }
-                ', root, "acCheck_" + Date.now());
-                acOnline.path = ac;
-                var v = acOnline.text().trim();
-                if (v !== "1") {
-                    // Use noctalia's ToastService so the message appears
-                    // inside the shell (it doesn't depend on a freedesktop
-                    // notification daemon being installed).
-                    if (typeof ToastService !== "undefined" && ToastService.showError) {
-                        ToastService.showError(
-                            "Carregador não conectado",
-                            "Conecte o carregador antes de mudar para Standard (100%).");
-                    } else {
-                        Quickshell.execDetached(["notify-send",
-                            "-a", "Battery Charge Mode",
-                            "-u", "critical",
-                            "Carregador não conectado",
-                            "Conecte o carregador antes de mudar para Standard (100%)."]);
-                    }
-                    return;
+            var acOnline = Qt.createQmlObject('
+                import Quickshell.Io
+                Process {
+                    stdout: StdioCollector {}
                 }
-            } catch (e) {
-                // If the read fails for any reason, fall through and let
-                // tlp produce its own error — better to try than to silently skip.
+            ', root, "acCheck_" + Date.now());
+            acOnline.command = ["sh", "-c", "cat '" + ac + "' 2>/dev/null || echo 0"];
+            acOnline.running = true;
+            // Polling: small spin while the cat finishes. The file is
+            // single-character and the read should complete in <10ms.
+            var tries = 0;
+            while (!acOnline.stdout.available && tries < 50) {
+                acOnline.stdout.waitForReadyRead(10);
+                tries++;
+            }
+            var v = acOnline.stdout.text().trim();
+            acOnline.destroy();
+            Logger.i("BatteryMode", "AC check: path=", ac, "v=[", v, "]");
+            if (v !== "1") {
+                // Use noctalia's ToastService so the message appears
+                // inside the shell (it doesn't depend on a freedesktop
+                // notification daemon being installed).
+                if (typeof ToastService !== "undefined" && ToastService.showError) {
+                    ToastService.showError(
+                        "Carregador não conectado",
+                        "Conecte o carregador antes de mudar para Standard (100%).");
+                } else {
+                    Quickshell.execDetached(["notify-send",
+                        "-a", "Battery Charge Mode",
+                        "-u", "critical",
+                        "Carregador não conectado",
+                        "Conecte o carregador antes de mudar para Standard (100%)."]);
+                }
+                return;
             }
         }
 
