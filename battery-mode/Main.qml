@@ -75,16 +75,40 @@ Item {
     function toggleChargeMode() {
         var currentCons = conservationView.text().trim();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
-        var target = (currentMode === "Standard") ? "poupar" : "cheia";
+        var tlpCmd = (currentMode === "Standard") ? "fullcharge" : "start";
+
+        // tlp fullcharge refuses if AC is not connected ("fullcharge is
+        // possible on AC power only"). Check /sys/class/power_supply/ADP0/online
+        // and bail out with a notification instead of triggering a
+        // pkexec + tlp round-trip that we know will be rejected.
+        if (tlpCmd === "fullcharge") {
+            var ac = "/sys/class/power_supply/ADP0/online";
+            try {
+                var acOnline = Qt.createQmlObject('
+                    import Quickshell.Io
+                    FileView { path: ""; onLoaded: destroy() }
+                ', root, "acCheck_" + Date.now());
+                acOnline.path = ac;
+                var v = acOnline.text().trim();
+                if (v !== "1") {
+                    Quickshell.execDetached(["notify-send",
+                        "-a", "Battery Charge Mode",
+                        "-u", "critical",
+                        "Carregador não conectado",
+                        "Conecte o carregador antes de mudar para Standard (100%)."]);
+                    return;
+                }
+            } catch (e) {
+                // If the read fails for any reason, fall through and let
+                // tlp produce its own error — better to try than to silently skip.
+            }
+        }
+
         // Use setsid to fully detach pkexec from this QML scene (otherwise
         // the broken polkit-agent dialog can deadlock Quickshell.Io.Process).
-        // We also skip the bat-* fish functions because they call pkexec
-        // internally and would re-trigger the same deadlock. Direct pkexec
-        // + tlp is enough to flip the mode.
-        var tlpCmd = (target === "cheia") ? "fullcharge" : "start";
         var cmd = "setsid -f pkexec /usr/bin/tlp " + tlpCmd;
         Logger.i("BatteryMode", "toggleChargeMode: currentCons=[", currentCons,
-                 "] currentMode=", currentMode, "target=", target,
+                 "] currentMode=", currentMode, "target=", tlpCmd,
                  "cmd=", cmd);
         Quickshell.execDetached(["sh", "-c", cmd]);
         forceRefreshTimer.restart();
