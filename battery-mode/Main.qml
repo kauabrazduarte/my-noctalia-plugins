@@ -31,8 +31,9 @@ Item {
         id: conservationView
         path: "/sys/devices/pci0000:00/0000:00:14.3/PNP0C09:00/VPC2004:00/conservation_mode"
         printErrors: false
-        watchChanges: true
-        onFileChanged: root.conservationRaw = text()
+        // NOTE: watchChanges does NOT work on this Lenovo sysfs path
+        // (inotify isn't fired for writes to virtual battery files). Use
+        // the periodic Timer (below) to force reload() instead.
         onInternalTextChanged: root.conservationRaw = text()
         Component.onCompleted: root.conservationRaw = text()
     }
@@ -40,8 +41,6 @@ Item {
         id: capacityView
         path: "/sys/class/power_supply/BAT0/capacity"
         printErrors: false
-        watchChanges: true
-        onFileChanged: root.capacityRaw = text()
         onInternalTextChanged: root.capacityRaw = text()
         Component.onCompleted: root.capacityRaw = text()
     }
@@ -49,8 +48,6 @@ Item {
         id: statusView
         path: "/sys/class/power_supply/BAT0/status"
         printErrors: false
-        watchChanges: true
-        onFileChanged: root.statusRaw = text()
         onInternalTextChanged: root.statusRaw = text()
         Component.onCompleted: root.statusRaw = text()
     }
@@ -58,8 +55,6 @@ Item {
         id: cycleView
         path: "/sys/class/power_supply/BAT0/cycle_count"
         printErrors: false
-        watchChanges: true
-        onFileChanged: root.cycleRaw = text()
         onInternalTextChanged: root.cycleRaw = text()
         Component.onCompleted: root.cycleRaw = text()
     }
@@ -80,10 +75,10 @@ Item {
     }
 
     // --- Action: toggle charge mode via TLP ---
+    // We use a Process (not execDetached) so we can run a follow-up
+    // reload() the moment the command finishes. That gives the UI
+    // a near-instant update instead of waiting for the 2s timer.
     function toggleChargeMode() {
-        // Read the current state RIGHT NOW (not the cached value) to decide
-        // which way to toggle. This avoids the stale-mode problem when the
-        // user clicks twice quickly and the FileView hasn't reloaded yet.
         var currentCons = conservationView.text();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
         var target = (currentMode === "Standard") ? "poupar" : "cheia";
@@ -91,9 +86,36 @@ Item {
                   ((target === "cheia") ? "fullcharge" : "start");
         Logger.i("BatteryMode", "toggleChargeMode: current=", currentMode,
                  "target=", target, "cmd=", cmd);
-        Quickshell.execDetached(["fish", "-c", cmd]);
-        // The FileView watcher will pick up the new conservation_mode and
-        // update conservationRaw automatically, which will re-evaluate the
-        // mode binding and refresh the icon/text.
+
+        var proc = Qt.createQmlObject('
+            import Quickshell.Io
+            Process {
+                stdout: StdioCollector {}
+                stderr: StdioCollector {}
+            }
+        ', root, "toggle_" + Date.now());
+        proc.command = ["fish", "-c", cmd];
+        proc.exited.connect(function (exitCode) {
+            Logger.i("BatteryMode", "toggle cmd exit=", exitCode,
+                     "stderr=", proc.stderr.text().trim().substring(0, 200));
+            proc.destroy();
+            // Force the FileViews to re-read sysfs right now. The
+            // conservation_mode file is what changes, and a couple of
+            // retries handle any race in the firmware's write.
+            refreshTimer.interval = 100;
+            refreshTimer.restart();
+            // After 1s, go back to the normal 2s polling cadence.
+            resetTimer.restart();
+        });
+        proc.running = true;
+    }
+
+    Timer {
+        id: resetTimer
+        interval: 1000
+        repeat: false
+        onTriggered: {
+            refreshTimer.interval = 2000;
+        }
     }
 }
