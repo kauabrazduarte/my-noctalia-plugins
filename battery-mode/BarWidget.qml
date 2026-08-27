@@ -26,13 +26,6 @@ Item {
     property bool allowClickWhenDisabled: false
     property bool hovering: false
 
-    property color colorBg: Color.mSurfaceVariant
-    property color colorFg: Color.mPrimary
-    property color colorBgHover: Color.mHover
-    property color colorFgHover: Color.mOnHover
-    property color colorBorder: Color.mOutline
-    property real customRadius: Style.radiusL
-
     // Live state from Main.qml
     readonly property string mode: pluginApi?.mainInstance?.mode ?? "Long_Life"
     readonly property int capacity: pluginApi?.mainInstance?.capacity ?? 0
