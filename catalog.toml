@@ -1,0 +1,17 @@
+# Noctalia plugins catalog.
+# Index of every plugin this source ships: the minimum needed to render, search,
+# and compat-check the list. The per-plugin plugin.toml stays authoritative.
+# Keep one [[plugin]] row per plugin subdirectory.
+
+[[plugin]]
+id = "kauadev/battery-mode"
+name = "Battery Charge Mode"
+version = "1.0.0"
+updated_at = 1787837000
+added_at = 1787837000
+author = "Kauã Braz"
+license = "MIT"
+icon = "battery"
+description = "Mostra e alterna o modo de carga da bateria (TLP / conservation mode do Lenovo). Clique para alternar entre Standard (100%) e Long_Life (60%)."
+plugin_api = 9
+tags = ["System", "Power", "Battery"]

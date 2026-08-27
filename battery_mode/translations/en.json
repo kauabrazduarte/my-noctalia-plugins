@@ -1,0 +1,32 @@
+{
+  "action": {
+    "enableLongLife": "Enable Long_Life (60%)",
+    "enableStandard": "Allow full charge to 100%",
+    "refresh": "Refresh"
+  },
+  "description": {
+    "longlife": "Charge stops at ~60% to preserve battery health while you keep the laptop plugged in. Recommended for daily desk use.",
+    "standard": "Free charge up to 100%. Use when you need full runtime, e.g. before a trip."
+  },
+  "mode": {
+    "longlife": "Long_Life (60%)",
+    "standard": "Standard (100%)"
+  },
+  "settings": {
+    "clickToToggle": {
+      "description": "Allow toggling the charge mode by clicking the bar widget.",
+      "label": "Click to toggle"
+    },
+    "showLabel": {
+      "description": "Show the charge percentage next to the icon.",
+      "label": "Show percentage"
+    }
+  },
+  "title": "Battery",
+  "tooltip": {
+    "charging": "Charging",
+    "discharging": "On battery",
+    "longlife": "Long_Life mode active",
+    "standard": "Standard mode active"
+  }
+}

@@ -1,0 +1,10 @@
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+*.komodoproject
+*.kate-swp
+.fuse_hidden*
+.trash-*

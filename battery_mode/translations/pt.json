@@ -1,0 +1,32 @@
+{
+  "action": {
+    "enableLongLife": "Ativar modo Long_Life (60%)",
+    "enableStandard": "Liberar carga até 100%",
+    "refresh": "Atualizar"
+  },
+  "description": {
+    "longlife": "A carga fica travada em ~60% para preservar a saúde da bateria enquanto você usa o notebook na tomada. Recomendado para uso diário conectado.",
+    "standard": "Carga livre até 100%. Use quando precisar de autonomia máxima, por exemplo antes de uma viagem."
+  },
+  "mode": {
+    "longlife": "Long_Life (60%)",
+    "standard": "Standard (100%)"
+  },
+  "settings": {
+    "clickToToggle": {
+      "description": "Permite alternar o modo de carga com um clique no widget da barra.",
+      "label": "Clique para alternar"
+    },
+    "showLabel": {
+      "description": "Mostra a porcentagem de carga ao lado do ícone.",
+      "label": "Mostrar porcentagem"
+    }
+  },
+  "title": "Bateria",
+  "tooltip": {
+    "charging": "Carregando",
+    "discharging": "Na bateria",
+    "longlife": "Modo Long_Life ativo",
+    "standard": "Modo Standard ativo"
+  }
+}

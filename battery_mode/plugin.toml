@@ -1,0 +1,47 @@
+id = "kauadev/battery-mode"
+name = "Battery Charge Mode"
+version = "1.0.0"
+plugin_api = 9
+author = "Kauã Braz"
+license = "MIT"
+tags = ["System", "Power", "Battery"]
+icon = "battery"
+description = "Mostra e alterna o modo de carga da bateria (TLP / conservation mode do Lenovo). Clique para alternar entre Standard (100%) e Long_Life (60%)."
+
+[[widget]]
+id = "battery"
+entry = "BarWidget.luau"
+
+  [[widget.setting]]
+  key = "show_label"
+  type = "bool"
+  label_key = "settings.showLabel.label"
+  description_key = "settings.showLabel.description"
+  default = true
+
+  [[widget.setting]]
+  key = "click_to_toggle"
+  type = "bool"
+  label_key = "settings.clickToToggle.label"
+  description_key = "settings.clickToToggle.description"
+  default = true
+
+# Headless service: poll the sysfs charge mode + battery capacity and publish
+# them on the plugin's shared state. The bar widget watches this state.
+[[service]]
+id = "watcher"
+entry = "service.luau"
+
+# Control-center quick-toggle tile.
+[[shortcut]]
+id = "mode"
+entry = "shortcut.luau"
+
+# Detail panel (open with: noctalia msg panel-toggle kauadev/battery-mode:panel)
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 360
+height = 320
+placement = "floating"
+position = "center"
