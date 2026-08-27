@@ -9,18 +9,19 @@
   "description": "Bar widget + control-center shortcut for toggling the Lenovo IdeaPad battery charge mode (Standard / Long_Life) via TLP. Clique para alternar entre Standard (100%) e Long_Life (60%).",
   "tags": ["System", "Power", "Battery"],
   "entryPoints": {
-    "main": "service.luau",
-    "barWidget": "BarWidget.luau",
-    "panel": "panel.luau",
-    "shortcut": "shortcut.luau"
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "controlCenterWidget": "ControlCenterWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
   },
   "dependencies": {
     "plugins": []
   },
   "metadata": {
     "defaultSettings": {
-      "show_label": true,
-      "click_to_toggle": true
+      "showLabel": true,
+      "clickToToggle": true
     }
   }
 }
