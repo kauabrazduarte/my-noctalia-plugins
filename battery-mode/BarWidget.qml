@@ -40,6 +40,15 @@ Item {
     readonly property bool showLabel: pluginApi?.pluginSettings?.showLabel ?? true
     readonly property bool clickToToggle: pluginApi?.pluginSettings?.clickToToggle ?? true
 
+    // Diagnostic: log on first render so we can see what the bindings resolved to
+    Component.onCompleted: {
+        Logger.i("BatteryMode", "BarWidget created. pluginApi?", pluginApi !== null,
+                 "mainInstance?", pluginApi?.mainInstance !== null,
+                 "clickToToggle=", root.clickToToggle,
+                 "showLabel=", root.showLabel,
+                 "contentWidth=", root.contentWidth);
+    }
+
     readonly property string currentGlyph: mode === "Standard" ? "bolt" : "leaf"
     readonly property string tooltipText: {
         if (!pluginApi) return "";
@@ -145,6 +154,10 @@ Item {
             root.exited();
         }
         onClicked: function (mouse) {
+            Logger.i("BatteryMode", "clicked. button=", mouse.button,
+                     "clickToToggle=", root.clickToToggle,
+                     "hasMainInstance=", pluginApi?.mainInstance !== null,
+                     "mode=", root.mode);
             if (root.tooltipText) {
                 TooltipService.hide();
             }
