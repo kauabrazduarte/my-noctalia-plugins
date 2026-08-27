@@ -34,7 +34,7 @@ Item {
             NIcon {
                 Layout.alignment: Qt.AlignHCenter
                 icon: root.mode === "Standard" ? "bolt" : "leaf"
-                color: Color.mOnSurface
+                color: root.mode === "Standard" ? Color.mPrimary : Color.mSecondary
                 pointSize: Style.fontSizeL
             }
 

@@ -106,7 +106,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             visible: showLabel
             icon: root.currentGlyph
-            color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
+            color: mouseArea.containsMouse ? Color.mOnHover : (root.mode === "Standard" ? Color.mPrimary : Color.mSecondary)
             pointSize: Style.fontSizeS
         }
 

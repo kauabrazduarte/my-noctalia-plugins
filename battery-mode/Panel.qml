@@ -48,7 +48,7 @@ Item {
 
                     NIcon {
                         icon: root.mode === "Standard" ? "bolt" : "leaf"
-                        color: Color.mOnSurface
+                        color: root.mode === "Standard" ? Color.mPrimary : Color.mSecondary
                         pointSize: Style.fontSizeXL
                     }
 
