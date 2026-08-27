@@ -73,16 +73,20 @@ Item {
 
     // --- Action: toggle charge mode via TLP ---
     function toggleChargeMode() {
-        // The FileView text() returns the raw content with a trailing newline.
-        // Strip it before comparing so "1" (Long_Life) is detected correctly.
         var currentCons = conservationView.text().trim();
         var currentMode = (currentCons === "1") ? "Long_Life" : "Standard";
         var target = (currentMode === "Standard") ? "poupar" : "cheia";
-        var cmd = "bat-" + target + " 2>/dev/null || pkexec /usr/bin/tlp " +
-                  ((target === "cheia") ? "fullcharge" : "start");
+        // Use setsid to fully detach pkexec from this QML scene (otherwise
+        // the broken polkit-agent dialog can deadlock Quickshell.Io.Process).
+        // We also skip the bat-* fish functions because they call pkexec
+        // internally and would re-trigger the same deadlock. Direct pkexec
+        // + tlp is enough to flip the mode.
+        var tlpCmd = (target === "cheia") ? "fullcharge" : "start";
+        var cmd = "setsid -f pkexec /usr/bin/tlp " + tlpCmd;
         Logger.i("BatteryMode", "toggleChargeMode: currentCons=[", currentCons,
-                 "] currentMode=", currentMode, "target=", target);
-        Quickshell.execDetached(["fish", "-c", cmd]);
+                 "] currentMode=", currentMode, "target=", target,
+                 "cmd=", cmd);
+        Quickshell.execDetached(["sh", "-c", cmd]);
         forceRefreshTimer.restart();
     }
 
